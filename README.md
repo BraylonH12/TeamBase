@@ -1,2 +1,14 @@
 # TeamBase
-CS415 Web Application Project
+CS415 Web Application Project:
+
+## Description
+Centralized sports organization and athletic management web application.
+
+## Team Members
+* Braylon Heavens (<bkheavens@crimson.ua.edu>)
+* Eric Smith (<emsmith40@crimson.ua.edu>)
+
+## Tech Stack
+* **Frontend:** HTML, CSS, JavaScript
+* **Backend:** Node.js, Express
+* **Database:** PostgreSQL
