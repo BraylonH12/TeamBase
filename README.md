@@ -12,3 +12,6 @@ Centralized sports organization and athletic management web application.
 * **Frontend:** HTML, CSS, JavaScript
 * **Backend:** Node.js, Express
 * **Database:** PostgreSQL
+
+## Setup Instructions
+* In Progress . . .
