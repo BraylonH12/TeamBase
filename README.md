@@ -15,3 +15,9 @@ Centralized sports organization and athletic management web application.
 
 ## Setup Instructions
 * In Progress . . .
+_Requirements_
+
+* Install the "TeamBase" Repository locally onto device
+* Run the following commands in the root folder directory through terminal
+- _npm install_
+- _npm start_
