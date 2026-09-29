@@ -87,6 +87,20 @@ button:hover {
   background: var(--primary-dark);
 }
 
+.button-link {
+  display: inline-block;
+  padding: 0.9rem 1.5rem;
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.button-link:hover {
+  background: var(--primary-dark);
+}
+
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -104,4 +118,71 @@ button:hover {
 
 .card h3 {
   margin-top: 0;
+}
+
+.login-layout {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 73px);
+  padding: 3rem 0;
+}
+
+.login-form {
+  width: min(100%, 420px);
+  padding: 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 12px 36px rgba(25, 39, 64, 0.08);
+}
+
+.login-form h2 {
+  margin: 0 0 0.5rem;
+}
+
+.login-form > p {
+  margin-top: 0;
+  color: var(--muted);
+}
+
+.form-field {
+  display: grid;
+  gap: 0.45rem;
+  margin: 1.25rem 0;
+}
+
+.form-field label {
+  font-weight: 700;
+}
+
+.form-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font: inherit;
+}
+
+.form-field input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.login-form button {
+  width: 100%;
+}
+
+.form-message {
+  min-height: 1.5em;
+  margin: 1rem 0 0 !important;
+}
+
+.form-message[data-state="error"] {
+  color: #b42318;
+}
+
+.form-message[data-state="success"] {
+  color: #18794e;
 }

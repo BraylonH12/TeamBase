@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign up | TeamBase</title>
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container">
+        <h1><a href="./index.html" aria-label="TeamBase home">TeamBase</a></h1>
+        <nav><a href="./login.html">Log in</a></nav>
+      </div>
+    </header>
+
+    <main class="container login-layout">
+      <form class="login-form" id="signup-form">
+        <p class="eyebrow">TeamBase account</p>
+        <h2>Create your account</h2>
+        <p>Use your email address to get started.</p>
+
+        <div class="form-field">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="confirm-password">Confirm password</label>
+          <input
+            id="confirm-password"
+            name="confirmPassword"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            required
+          />
+        </div>
+
+        <button type="submit">Sign up</button>
+        <p class="form-message" id="signup-message" role="status" aria-live="polite"></p>
+        <p>Already registered? <a href="./login.html">Log in</a></p>
+      </form>
+    </main>
+
+    <script src="./js/signup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Log in | TeamBase</title>
+    <link rel="stylesheet" href="./css/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container">
+        <h1><a href="./index.html" aria-label="TeamBase home">TeamBase</a></h1>
+        <nav><a href="./index.html">Home</a></nav>
+      </div>
+    </header>
+
+    <main class="container login-layout">
+      <form class="login-form" id="login-form">
+        <p class="eyebrow">TeamBase account</p>
+        <h2>Log in</h2>
+        <p>Enter your account email and password.</p>
+
+        <div class="form-field">
+          <label for="email">Email</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+          />
+        </div>
+
+        <div class="form-field">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+
+        <button type="submit">Log in</button>
+        <p class="form-message" id="login-message" role="status" aria-live="polite"></p>
+        <p>New to TeamBase? <a href="./signup.html">Create an account</a></p>
+      </form>
+    </main>
+
+    <script src="./js/login.js"></script>
+  </body>
+</html>

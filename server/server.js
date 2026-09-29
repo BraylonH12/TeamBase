@@ -6,11 +6,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const apiRoutes = require('./routes');
+const authRoutes = require('./routes/auth');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api', apiRoutes);
+app.use('/api/auth', authRoutes);
+
+app.use((error, req, res, next) => {
+  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+    return res.status(400).json({ message: 'Request body must be valid JSON.' });
+  }
+
+  return next(error);
+});
 
 app.use(express.static(path.join(__dirname, '../frontend')));
 
@@ -18,6 +28,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`TeamBase server running on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`TeamBase server running on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
