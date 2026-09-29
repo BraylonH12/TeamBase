@@ -19,6 +19,8 @@ Centralized sports organization and athletic management web application.
 3. Create the database, then run `psql -U postgres -d teambase -f db/migrations/001_create_users.sql`.
 4. Start the app with `npm run dev` and open `http://localhost:3000`.
 
+To add the demo accounts to that database, run `psql -U postgres -d teambase -f db/seeds/001_test_accounts.sql`. This seed is safe to rerun without adding duplicate accounts. These shared, weak-password accounts are for controlled demo/test environments only; do not keep them on a publicly accessible production deployment.
+
 The login and signup pages are available at `/login.html` and `/signup.html`. Signup creates a user in the `users` table with a bcrypt-hashed password; login verifies existing accounts. Both successful flows issue an HttpOnly session cookie and navigate to `/home.html`. The signup endpoint is `POST /api/auth/signup`, and login is `POST /api/auth/login`.
 _Requirements_
 

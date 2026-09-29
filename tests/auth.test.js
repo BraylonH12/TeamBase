@@ -1,4 +1,7 @@
 const assert = require('node:assert/strict');
+const bcrypt = require('bcryptjs');
+const { readFileSync } = require('node:fs');
+const path = require('node:path');
 const { after, before, test } = require('node:test');
 const app = require('../server/server');
 
@@ -83,4 +86,16 @@ test('signup rejects passwords shorter than eight characters', async () => {
   assert.deepEqual(await response.json(), {
     message: 'Password must be at least 8 characters and no more than 72 bytes.',
   });
+});
+
+test('demo account seed stores hashes for the requested passwords', async () => {
+  const seedSql = readFileSync(path.join(__dirname, '../db/seeds/001_test_accounts.sql'), 'utf8');
+  const accounts = [...seedSql.matchAll(/\('([^']+)', '([^']+)'\)/g)];
+
+  assert.deepEqual(accounts.map(([, email]) => email), [
+    'Brickhouse@email.com',
+    'Michael@email.com',
+  ]);
+  assert.equal(await bcrypt.compare('123456', accounts[0][2]), true);
+  assert.equal(await bcrypt.compare('654321', accounts[1][2]), true);
 });
