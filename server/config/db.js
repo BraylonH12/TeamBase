@@ -1,37 +1,46 @@
-const { Client } = require('pg');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-const client = new Client({
+const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
   database: process.env.DB_NAME || 'teambase',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
+  max: 10,
 });
 
-let connected = false;
-
 async function connect() {
-  if (!connected) {
-    await client.connect();
-    connected = true;
-  }
+  await pool.query('SELECT 1');
 }
 
 async function disconnect() {
-  if (connected) {
-    await client.end();
-    connected = false;
-  }
+  await pool.end();
 }
 
 async function query(text, params) {
-  await connect();
-  return client.query(text, params);
+  return pool.query(text, params);
+}
+
+async function transaction(callback) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 module.exports = {
   query,
   connect,
   disconnect,
+  transaction,
 };

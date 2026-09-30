@@ -22,6 +22,8 @@ signupForm.addEventListener('submit', async (event) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        name: formData.get('name'),
+        role: formData.get('role'),
         email: formData.get('email'),
         password,
       }),
