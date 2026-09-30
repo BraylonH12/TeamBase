@@ -19,7 +19,9 @@ app.use((error, req, res, next) => {
     return res.status(400).json({ message: 'Request body must be valid JSON.' });
   }
 
-  return next(error);
+  if (res.headersSent) return next(error);
+  console.error('Unhandled request error:', error.message);
+  return res.status(500).json({ message: 'An unexpected server error occurred.' });
 });
 
 app.use(express.static(path.join(__dirname, '../frontend')));

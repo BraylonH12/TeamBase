@@ -21,6 +21,19 @@
         <p>Use your email address to get started.</p>
 
         <div class="form-field">
+          <label for="name">Name</label>
+          <input id="name" name="name" type="text" autocomplete="name" maxlength="100" required />
+        </div>
+
+        <div class="form-field">
+          <label for="role">Account type</label>
+          <select id="role" name="role" required>
+            <option value="Owner">Athletic director</option>
+            <option value="Player">Player</option>
+          </select>
+        </div>
+
+        <div class="form-field">
           <label for="email">Email</label>
           <input
             id="email"
