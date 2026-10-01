@@ -34,8 +34,18 @@ async function hasTeamAccess(teamId, userId) {
      WHERE t.id = $1 AND (
        t.owner_id = $2 OR EXISTS (
          SELECT 1 FROM players p WHERE p.team_id = t.id AND p.user_id = $2
+       ) OR EXISTS (
+         SELECT 1 FROM team_coaches c WHERE c.team_id = t.id AND c.user_id = $2
        )
      )`,
+    [teamId, userId],
+  );
+  return result.rowCount > 0;
+}
+
+async function isTeamCoach(teamId, userId) {
+  const result = await db.query(
+    'SELECT 1 FROM team_coaches WHERE team_id = $1 AND user_id = $2',
     [teamId, userId],
   );
   return result.rowCount > 0;
@@ -54,7 +64,7 @@ function databaseError(res, error, action) {
     return res.status(400).json({ message: 'A referenced team or player account does not exist.' });
   }
   if (error.code === '23505') {
-    return res.status(409).json({ message: 'This account is already assigned to a roster.' });
+    return res.status(409).json({ message: 'This account is already assigned to this team.' });
   }
 
   console.error(`${action} failed:`, error.message);
@@ -91,17 +101,27 @@ router.post('/', requireRole('Owner'), async (req, res) => {
 
 router.get('/mine', async (req, res) => {
   try {
-    const result = req.user.role === 'Owner'
-      ? await db.query(
+    let result;
+    if (req.user.role === 'Owner') {
+      result = await db.query(
         'SELECT id, name, sport, owner_id, created_at FROM teams WHERE owner_id = $1 ORDER BY name, id',
         [req.user.id],
-      )
-      : await db.query(
+      );
+    } else if (req.user.role === 'Player') {
+      result = await db.query(
         `SELECT t.id, t.name, t.sport, t.owner_id, t.created_at
          FROM teams t JOIN players p ON p.team_id = t.id
          WHERE p.user_id = $1 ORDER BY t.name, t.id`,
         [req.user.id],
       );
+    } else {
+      result = await db.query(
+        `SELECT t.id, t.name, t.sport, t.owner_id, t.created_at
+         FROM teams t JOIN team_coaches c ON c.team_id = t.id
+         WHERE c.user_id = $1 ORDER BY t.name, t.id`,
+        [req.user.id],
+      );
+    }
 
     return res.json({ teams: result.rows });
   } catch (error) {
@@ -145,6 +165,78 @@ router.get('/:teamId/roster', async (req, res) => {
     return res.json({ players: result.rows });
   } catch (error) {
     return databaseError(res, error, 'load roster');
+  }
+});
+
+router.get('/:teamId/coaches', async (req, res) => {
+  const teamId = parseId(req.params.teamId);
+  if (!teamId) return res.status(400).json({ message: 'Enter a valid team ID.' });
+
+  try {
+    if (!(await hasTeamAccess(teamId, req.user.id))) {
+      return res.status(404).json({ message: 'Team not found.' });
+    }
+
+    const result = await db.query(
+      `SELECT u.id, u.name
+       FROM team_coaches c JOIN users u ON u.id = c.user_id
+       WHERE c.team_id = $1 ORDER BY u.name, u.id`,
+      [teamId],
+    );
+    return res.json({ coaches: result.rows });
+  } catch (error) {
+    return databaseError(res, error, 'load team coaches');
+  }
+});
+
+router.post('/:teamId/coaches', requireRole('Owner'), async (req, res) => {
+  const teamId = parseId(req.params.teamId);
+  const { email } = req.body || {};
+  if (!teamId || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ message: 'Enter a valid Coach account email.' });
+  }
+
+  try {
+    if (!(await isTeamOwner(teamId, req.user.id))) {
+      return res.status(404).json({ message: 'Team not found.' });
+    }
+
+    const account = await db.query(
+      "SELECT id, name, email FROM users WHERE LOWER(email) = $1 AND role = 'Coach'",
+      [email.trim().toLowerCase()],
+    );
+    if (!account.rows[0]) {
+      return res.status(400).json({ message: 'Create a Coach account before assigning them to a team.' });
+    }
+
+    await db.query(
+      'INSERT INTO team_coaches (team_id, user_id, assigned_by) VALUES ($1, $2, $3)',
+      [teamId, account.rows[0].id, req.user.id],
+    );
+    return res.status(201).json({ coach: account.rows[0] });
+  } catch (error) {
+    return databaseError(res, error, 'assign coach');
+  }
+});
+
+router.delete('/:teamId/coaches/:coachId', requireRole('Owner'), async (req, res) => {
+  const teamId = parseId(req.params.teamId);
+  const coachId = parseId(req.params.coachId);
+  if (!teamId || !coachId) return res.status(400).json({ message: 'Enter valid team and Coach IDs.' });
+
+  try {
+    if (!(await isTeamOwner(teamId, req.user.id))) {
+      return res.status(404).json({ message: 'Team not found.' });
+    }
+
+    const result = await db.query(
+      'DELETE FROM team_coaches WHERE team_id = $1 AND user_id = $2 RETURNING user_id',
+      [teamId, coachId],
+    );
+    if (!result.rowCount) return res.status(404).json({ message: 'Coach assignment not found.' });
+    return res.json({ message: 'Coach removed from team.' });
+  } catch (error) {
+    return databaseError(res, error, 'remove coach');
   }
 });
 
@@ -211,7 +303,7 @@ router.get('/:teamId/events', async (req, res) => {
   }
 });
 
-router.post('/:teamId/events', requireRole('Owner'), async (req, res) => {
+router.post('/:teamId/events', requireRole('Owner', 'Coach'), async (req, res) => {
   const teamId = parseId(req.params.teamId);
   const { event_type: eventType, title, event_date: eventDate, event_time: eventTime,
     location, opponent_team_id: opponentTeamId } = req.body || {};
@@ -227,9 +319,15 @@ router.post('/:teamId/events', requireRole('Owner'), async (req, res) => {
       || (parsedOpponentId && parsedOpponentId === teamId)) {
     return res.status(400).json({ message: 'Enter a valid event type, date, time, location, and title.' });
   }
+  if (req.user.role === 'Coach' && (eventType !== 'Practice' || opponentTeamId != null)) {
+    return res.status(403).json({ message: 'Coaches can schedule practices only.' });
+  }
 
   try {
-    if (!(await isTeamOwner(teamId, req.user.id))) {
+    const canSchedule = req.user.role === 'Owner'
+      ? await isTeamOwner(teamId, req.user.id)
+      : await isTeamCoach(teamId, req.user.id);
+    if (!canSchedule) {
       return res.status(404).json({ message: 'Team not found.' });
     }
 
@@ -266,7 +364,7 @@ router.get('/:teamId/posts', async (req, res) => {
   }
 });
 
-router.post('/:teamId/posts', requireRole('Owner'), async (req, res) => {
+router.post('/:teamId/posts', requireRole('Owner', 'Coach'), async (req, res) => {
   const teamId = parseId(req.params.teamId);
   const { title, content } = req.body || {};
   if (!teamId || !validText(title, 150) || typeof content !== 'string'
@@ -275,7 +373,10 @@ router.post('/:teamId/posts', requireRole('Owner'), async (req, res) => {
   }
 
   try {
-    if (!(await isTeamOwner(teamId, req.user.id))) {
+    const canPost = req.user.role === 'Owner'
+      ? await isTeamOwner(teamId, req.user.id)
+      : await isTeamCoach(teamId, req.user.id);
+    if (!canPost) {
       return res.status(404).json({ message: 'Team not found.' });
     }
 
