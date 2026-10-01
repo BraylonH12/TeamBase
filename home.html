@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard | TeamBase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="./css/dashboard.css" />
+  </head>
+  <body data-role="">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <a class="brand" href="./home.html" aria-label="TeamBase dashboard">TeamBase</a>
+          <div class="sidebar-user" id="sidebar-user">
+            <div class="user-text">
+              <span class="user-name" id="user-name"></span>
+              <span class="user-role" id="user-role"></span>
+            </div>
+            <button type="button" class="link-button" id="logout-btn">Log out</button>
+          </div>
+        </div>
+
+        <div class="team-switch" id="team-switch" hidden>
+          <label for="team-select">Team</label>
+          <select id="team-select"></select>
+        </div>
+        <button type="button" class="link-button new-team" id="new-team-btn" data-owner-only hidden>
+          New team
+        </button>
+
+        <nav class="side-nav" id="side-nav" aria-label="Dashboard sections">
+          <a href="#overview" data-view="overview">Overview</a>
+          <a href="#schedule" data-view="schedule">Schedule</a>
+          <a href="#roster" data-view="roster">Roster</a>
+          <a href="#announcements" data-view="announcements">Announcements</a>
+          <a href="#requests" data-view="requests" data-owner-only>
+            Game requests
+            <span class="count" id="requests-count" hidden></span>
+          </a>
+        </nav>
+      </aside>
+
+      <main class="main" id="main" tabindex="-1">
+        <header class="page-head">
+          <h1 id="team-title">Loading</h1>
+          <p id="team-sub"></p>
+        </header>
+
+        <div class="banner" id="banner" role="alert" hidden></div>
+
+        <p class="loading" id="loading">Loading your dashboard</p>
+
+        <section class="view" id="view-overview" hidden></section>
+        <section class="view" id="view-schedule" hidden></section>
+        <section class="view" id="view-roster" hidden></section>
+        <section class="view" id="view-announcements" hidden></section>
+        <section class="view" id="view-requests" hidden></section>
+      </main>
+    </div>
+
+    <!-- Create team -->
+    <dialog id="dlg-team" aria-labelledby="dlg-team-title">
+      <form class="dialog-form">
+        <h2 id="dlg-team-title">Create a team</h2>
+        <p class="dialog-lede">You'll manage its roster, schedule and announcements.</p>
+        <div class="field">
+          <label for="team-name">Team name</label>
+          <input id="team-name" name="name" type="text" maxlength="100" required />
+        </div>
+        <div class="field">
+          <label for="team-sport">Sport</label>
+          <input id="team-sport" name="sport" type="text" maxlength="50" list="sport-list" required />
+          <datalist id="sport-list">
+            <option value="Baseball"></option>
+            <option value="Basketball"></option>
+            <option value="Football"></option>
+            <option value="Soccer"></option>
+            <option value="Softball"></option>
+            <option value="Volleyball"></option>
+            <option value="Tennis"></option>
+            <option value="Track and field"></option>
+            <option value="Swimming"></option>
+          </datalist>
+        </div>
+        <p class="form-message" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Create team</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Add event -->
+    <dialog id="dlg-event" aria-labelledby="dlg-event-title">
+      <form class="dialog-form">
+        <h2 id="dlg-event-title">Add to schedule</h2>
+        <p class="dialog-lede" id="dlg-event-lede"></p>
+        <fieldset class="field">
+          <legend>Type</legend>
+          <div class="choices">
+            <label class="choice">
+              <input type="radio" name="event_type" value="Practice" checked />
+              <span>Practice</span>
+            </label>
+            <label class="choice">
+              <input type="radio" name="event_type" value="Game" />
+              <span>Game</span>
+            </label>
+          </div>
+        </fieldset>
+        <div class="field">
+          <label for="event-title">Title <span class="optional">(optional)</span></label>
+          <input id="event-title" name="title" type="text" maxlength="100" placeholder="Defaults to the event type" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="event-date">Date</label>
+            <input id="event-date" name="event_date" type="date" required />
+          </div>
+          <div class="field">
+            <label for="event-time">Start time</label>
+            <input id="event-time" name="event_time" type="time" value="18:00" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="event-location">Location</label>
+          <input id="event-location" name="location" type="text" maxlength="255" required />
+        </div>
+        <div class="field" id="event-opponent-field" hidden>
+          <label for="event-opponent">Opponent <span class="optional">(optional)</span></label>
+          <select id="event-opponent" name="opponent_team_id"></select>
+          <p class="hint">
+            This adds the game to your schedule only. To put it on both teams' schedules,
+            <button type="button" class="link-button" id="switch-to-request">send a game request</button>
+            instead.
+          </p>
+        </div>
+        <p class="form-message" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Add to schedule</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Add player -->
+    <dialog id="dlg-player" aria-labelledby="dlg-player-title">
+      <form class="dialog-form">
+        <h2 id="dlg-player-title">Add a player</h2>
+        <p class="dialog-lede" id="dlg-player-lede"></p>
+        <div class="field">
+          <label for="player-name">Name</label>
+          <input id="player-name" name="name" type="text" maxlength="100" required />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="player-number">Jersey number</label>
+            <input id="player-number" name="jersey_number" type="number" min="0" max="999" step="1" required />
+          </div>
+          <div class="field">
+            <label for="player-position">Position</label>
+            <input id="player-position" name="position" type="text" maxlength="50" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="player-email">Player account email <span class="optional">(optional)</span></label>
+          <input id="player-email" name="email" type="email" autocomplete="off" />
+          <p class="hint">Link a Player account so this person can see the team's schedule and announcements.</p>
+        </div>
+        <p class="form-message" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Add player</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Post announcement -->
+    <dialog id="dlg-post" aria-labelledby="dlg-post-title">
+      <form class="dialog-form">
+        <h2 id="dlg-post-title">Post an announcement</h2>
+        <p class="dialog-lede" id="dlg-post-lede"></p>
+        <div class="field">
+          <label for="post-title">Title</label>
+          <input id="post-title" name="title" type="text" maxlength="150" required />
+        </div>
+        <div class="field">
+          <label for="post-content">Message</label>
+          <textarea id="post-content" name="content" rows="6" maxlength="10000" required></textarea>
+        </div>
+        <p class="form-message" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Post announcement</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Request a game -->
+    <dialog id="dlg-request" aria-labelledby="dlg-request-title">
+      <form class="dialog-form">
+        <h2 id="dlg-request-title">Request a game</h2>
+        <p class="dialog-lede">
+          The other owner can accept or decline. Accepting puts the game on both schedules.
+        </p>
+        <div class="field">
+          <label for="request-team">Your team</label>
+          <select id="request-team" name="team_id" required></select>
+        </div>
+        <div class="field">
+          <label for="request-opponent">Opponent</label>
+          <select id="request-opponent" name="opponent_team_id" required></select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="request-date">Proposed date</label>
+            <input id="request-date" name="proposed_date" type="date" required />
+          </div>
+          <div class="field">
+            <label for="request-time">Start time</label>
+            <input id="request-time" name="proposed_time" type="time" value="18:00" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="request-location">Location</label>
+          <input id="request-location" name="location" type="text" maxlength="255" required />
+        </div>
+        <p class="form-message" role="alert"></p>
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+          <button type="submit" class="btn">Send request</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+    <script src="./js/dashboard.js"></script>
+  </body>
+</html>
