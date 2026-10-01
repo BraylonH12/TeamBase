@@ -6,7 +6,7 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 const SESSION_DURATION_SECONDS = 60 * 60;
-const VALID_ROLES = ['Owner', 'Player'];
+const VALID_ROLES = ['Owner', 'Coach', 'Player'];
 
 function isValidEmail(email) {
   return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -14,6 +14,13 @@ function isValidEmail(email) {
 
 function publicUser(user) {
   return { id: user.id, name: user.name, email: user.email, role: user.role };
+}
+
+function authDatabaseMessage(error) {
+  if (error.code === '28P01') {
+    return 'PostgreSQL rejected the configured database credentials. Update DB_USER and DB_PASSWORD in .env, then restart the server.';
+  }
+  return 'Unable to process authentication right now.';
 }
 
 function setAuthCookie(res, user) {
@@ -64,7 +71,7 @@ router.post('/login', async (req, res) => {
     return res.json({ message: 'Login successful.', user: publicUser(user) });
   } catch (error) {
     console.error('Login request failed:', error.message);
-    return res.status(503).json({ message: 'Unable to process login right now.' });
+    return res.status(503).json({ message: authDatabaseMessage(error) });
   }
 });
 
@@ -90,7 +97,7 @@ router.post('/signup', async (req, res) => {
   }
 
   if (!VALID_ROLES.includes(role)) {
-    return res.status(400).json({ message: 'Role must be Owner or Player.' });
+    return res.status(400).json({ message: 'Role must be Owner, Coach, or Player.' });
   }
 
   if (password.length < 8 || Buffer.byteLength(password, 'utf8') > 72) {
@@ -120,7 +127,7 @@ router.post('/signup', async (req, res) => {
     }
 
     console.error('Sign-up request failed:', error.message);
-    return res.status(503).json({ message: 'Unable to create an account right now.' });
+    return res.status(503).json({ message: authDatabaseMessage(error) });
   }
 });
 
