@@ -36,6 +36,15 @@ You do **not** need to install or run `psql` just to create an account. After th
 
 To add the demo accounts to that database, run `psql -U postgres -d teambase -f db/seeds/001_test_accounts.sql`. This seed is safe to rerun without adding duplicate accounts. These shared, weak-password accounts are for controlled demo/test environments only; do not keep them on a publicly accessible production deployment.
 
+The seed includes these local demo accounts:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Owner | `Owner@email.com` | `123456` |
+| Player | `Player@email.com` | `123456` |
+
+The Owner account owns the `Warriors` basketball team. The roster contains Lebron (#23, Forward), linked to the Player account, and Larry (#30, Guard).
+
 The login and signup pages are available at `/login.html` and `/signup.html`. Signup creates an Owner, Coach, or Player account with a bcrypt-hashed password; login verifies existing accounts. Successful flows issue an HttpOnly session cookie and navigate to `/home.html`. Authentication also accepts bearer tokens; `GET /api/auth/me` returns the current user and `POST /api/auth/logout` clears the cookie.
 
 ## Milestone 1 Verification
@@ -46,23 +55,12 @@ Run the automated checks from the repository root:
 npm test
 ```
 
-To verify the main MVP workflow manually:
+To verify the main workflow manually after cloning:
 
-1. Start the server with `npm start` and open `http://localhost:3000/signup.html`.
-2. Create an Owner account, then create a team from the dashboard.
-3. Create Coach and Player accounts in separate browser sessions. The seeded `Michael@email.com` account can be used for the Player.
-4. In the Owner session, open Roster, assign the Coach by account email, and add the Player by account email.
-5. Log in as the Coach and verify the assigned team's roster and schedule are visible. Add a practice and an announcement; verify Coach controls do not include team or roster management or game scheduling.
-6. Log in as the Player and verify the linked team's roster, schedule, and announcements are visible. Confirm staff-only controls are unavailable.
-
-The demo account passwords are documented by `db/seeds/001_test_accounts.sql` and are for local controlled testing only. The TA can also create fresh accounts and use the same workflow.
-
-Authenticated owners can create teams with `POST /api/teams`, assign and remove Coaches with `POST` and `DELETE /api/teams/:teamId/coaches`, add roster players with `POST /api/teams/:teamId/roster`, and schedule practices or games with `POST /api/teams/:teamId/events`. Assigned Coaches can schedule practices and post announcements, but cannot manage teams, rosters, or games. Players linked to a roster by their account email can read that team's roster, schedule, and posts. `GET /api/teams/mine` returns teams owned by the current Owner or assigned to the current Coach or Player, while `GET /api/teams` lists teams for opponent selection.
-
-Owners send a match request with `POST /api/game-requests` using `team_id`, `opponent_team_id`, `proposed_date`, `proposed_time`, and `location`. `GET /api/game-requests` lists requests for their teams. Only the receiving owner can answer with `PATCH /api/game-requests/:requestId` and `{ "status": "Accepted" }` or `{ "status": "Rejected" }`. Acceptance creates both teams' confirmed game events and updates the request in one database transaction.
-_Requirements_
-
-* Install the "TeamBase" Repository locally onto device
-* Run the following commands in the root folder directory through terminal
-- _npm install_
-- _npm start_
+1. Follow the environment setup instructions above.
+2. Go to `/signup.html` to create a new Owner or Player account, or go to `/login.html` to sign in with one of the seeded test accounts.
+3. Confirm that a successful login sets the session cookie and redirects to `/home.html`.
+4. As an Owner, create a team, add players to its roster, and post a team announcement.
+5. As an Owner, schedule an event for that team.
+6. As an Owner, send a match request to an opponent team. Sign in as the receiving team's Owner, accept the request, and confirm that a game event appears on both teams' schedules.
+7. As a Player, verify that the assigned team's roster, upcoming schedule, and announcements are visible.

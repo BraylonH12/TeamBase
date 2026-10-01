@@ -322,14 +322,22 @@ test('protected team routes reject requests without a session', async () => {
   }
 });
 
-test('demo account seed stores hashes for the requested passwords', async () => {
+test('demo seed defines account roles, passwords, and Warriors roster', async () => {
   const seedSql = readFileSync(path.join(__dirname, '../db/seeds/001_test_accounts.sql'), 'utf8');
-  const accounts = [...seedSql.matchAll(/\('([^']+)', '([^']+)', '([^']+)'\)/g)];
+  const accounts = [...seedSql.matchAll(/\('([^']+)', '([^']+)', '([^']+)', '(Owner|Coach|Player)'\)/g)]
+    .map(([, name, email, hash, role]) => ({ name, email, hash, role }));
 
-  assert.deepEqual(accounts.map(([, name, email]) => email), [
-    'Brickhouse@email.com',
-    'Michael@email.com',
+  assert.deepEqual(accounts.map(({ name, email, role }) => [name, email, role]), [
+    ['Brickhouse', 'Brickhouse@email.com', 'Owner'],
+    ['Michael', 'Michael@email.com', 'Player'],
+    ['Player', 'Player@email.com', 'Player'],
+    ['Owner', 'Owner@email.com', 'Owner'],
   ]);
-  assert.equal(await bcrypt.compare('123456', accounts[0][3]), true);
-  assert.equal(await bcrypt.compare('654321', accounts[1][3]), true);
+  assert.equal(await bcrypt.compare('123456', accounts.find((account) => account.email === 'Player@email.com').hash), true);
+  assert.equal(await bcrypt.compare('123456', accounts.find((account) => account.email === 'Owner@email.com').hash), true);
+  assert.equal(await bcrypt.compare('123456', accounts.find((account) => account.email === 'Brickhouse@email.com').hash), true);
+  assert.equal(await bcrypt.compare('654321', accounts.find((account) => account.email === 'Michael@email.com').hash), true);
+  assert.match(seedSql, /'Warriors', 'Basketball'/);
+  assert.match(seedSql, /'Lebron', 23, 'Forward'/);
+  assert.match(seedSql, /'Larry', 30, 'Guard'/);
 });
