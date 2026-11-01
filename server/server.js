@@ -1,19 +1,39 @@
 const express = require('express');
 const path = require('path');
 const crypto = require('node:crypto');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const configuredAuthRateLimit = process.env.AUTH_RATE_LIMIT_MAX;
+const authRateLimitMax = configuredAuthRateLimit === undefined
+  ? (process.env.NODE_ENV === 'test' ? 1000 : 10)
+  : Number(configuredAuthRateLimit);
+
+if (!Number.isSafeInteger(authRateLimitMax) || authRateLimitMax < 1) {
+  throw new Error('AUTH_RATE_LIMIT_MAX must be a positive integer.');
+}
 
 const apiRoutes = require('./routes');
 const authRoutes = require('./routes/auth');
 const db = require('./config/db');
 
+const authRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: authRateLimitMax,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many authentication attempts. Try again later.' },
+});
+
+app.use(helmet());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
 app.use('/api', apiRoutes);
+app.use('/api/auth/login', authRateLimit);
+app.use('/api/auth/signup', authRateLimit);
 app.use('/api/auth', authRoutes);
 
 app.use((error, req, res, next) => {
@@ -34,11 +54,11 @@ app.get('/', (req, res) => {
 
 if (require.main === module) {
   async function start() {
-    if (!process.env.JWT_SECRET) {
-      if (process.env.NODE_ENV === 'production') {
-        throw new Error('JWT_SECRET must be set in production.');
+    if (process.env.NODE_ENV === 'production') {
+      if (Buffer.byteLength(process.env.JWT_SECRET || '', 'utf8') < 32) {
+        throw new Error('JWT_SECRET must be at least 32 bytes in production.');
       }
-
+    } else if (!process.env.JWT_SECRET) {
       process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
       console.warn('JWT_SECRET is unset; using a temporary random development secret.');
     }
