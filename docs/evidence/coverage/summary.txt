@@ -1,0 +1,24 @@
+Coverage run: npm run test:coverage
+Runtime: Node.js v24.19.0
+Tests: 34 passed, 0 failed
+
+| File | Line coverage |
+| --- | ---: |
+| server/server.js | 55.17% |
+| server/config/db.js | 60.00% |
+| server/middleware/auth.js | 100.00% |
+| server/routes/auth.js | 93.70% |
+| server/routes/gameRequests.js | 90.18% |
+| server/routes/index.js | 68.75% |
+| server/routes/teams.js | 71.39% |
+| All server files | 77.31% |
+| Routes | 80.06% |
+| Middleware | 100.00% |
+
+The suggested coverage target is at least 80% line coverage across server routes
+and middleware, and 70% across server source overall. Weighted by instrumented
+lines, routes and middleware together have 81.81% coverage; overall server line
+coverage is 77.31%. These targets prioritize authorization, team access, and
+game-request transactions while allowing lower coverage in process startup and
+database-driver setup, which are verified with startup and embedded-database
+smoke checks.
