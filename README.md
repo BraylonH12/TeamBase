@@ -11,30 +11,41 @@ Centralized sports organization and athletic management web application.
 ## Tech Stack
 * **Frontend:** HTML, CSS, JavaScript
 * **Backend:** Node.js, Express
-* **Database:** PostgreSQL
+* **Database:** PostgreSQL (embedded PGlite locally; `pg` for a PostgreSQL server)
 
-## Setup Instructions
+## Quick Start
 
-Install [PostgreSQL for Windows](https://www.postgresql.org/download/windows/) if you want a local database. The official installer includes the PostgreSQL server and command-line tools such as `psql`; select the command-line tools component if the installer offers component choices. After installation, open a new terminal and check that `psql --version` works. If Windows cannot find `psql`, add PostgreSQL's `bin` directory to your `PATH`.
+Requires Node.js 22 or later. The project was smoke-tested on Node.js 22 during the database spike; this environment's automated tests run on Node.js 24.19.0. No local PostgreSQL installation is needed for development.
 
-1. Install Node.js, then install project dependencies with `npm install`.
-2. Start PostgreSQL and create a database named `teambase` (for example, with pgAdmin or `createdb -U postgres teambase`).
-3. Copy `.env.example` to `.env` and set the database connection values, including the password chosen for the local PostgreSQL `postgres` account, and a long, random `JWT_SECRET`. The example password is a placeholder and will not authenticate to your local server.
-4. Apply each migration once, in order:
+```powershell
+git clone https://github.com/BraylonH12/TeamBase.git
+cd TeamBase
+npm install
+npm start
+```
 
-	```powershell
-	psql -U postgres -d teambase -f db/migrations/001_create_users.sql
-	psql -U postgres -d teambase -f db/migrations/002_create_team_features.sql
-	psql -U postgres -d teambase -f db/migrations/003_add_coach_access.sql
-	```
+Open `http://localhost:3000`. Migrations are applied automatically on startup. The embedded PGlite database is stored under `data/pgdata` and demo data is seeded automatically in development. To start over, stop the server and run `npm run db:reset`. Copy `.env.example` to `.env` only if you want to configure optional settings. If `JWT_SECRET` is unset, development startup generates a temporary secret, so login sessions do not survive a server restart.
 
-5. Start the app with `npm run dev` and open `http://localhost:3000`.
+### Environment variables
 
-If login or signup reports that PostgreSQL rejected the configured credentials, update `DB_USER` and `DB_PASSWORD` in `.env` and restart the server. Keep the password in `.env`; do not commit it or send it in chat. On Windows, `psql.exe` is commonly under `C:\Program Files\PostgreSQL\<version>\bin\psql.exe`; pgAdmin can also be used to create the database and apply migrations.
+| Variable | Required | Description |
+| --- | --- | --- |
+| `PORT` | No | HTTP port (default `3000`). |
+| `DATABASE_URL` | No | PostgreSQL connection string; when set, uses the `pg` driver instead of embedded PGlite. |
+| `JWT_SECRET` | No in development; required in production | Secret used to sign authentication tokens. |
+| `SEED_DEMO` | No | Set to `true` to seed demo accounts or `false` to disable seeding. By default, seeds run on embedded development databases only. |
+| `PGLITE_DIR` | No | Custom PGlite data directory. Without it, the app uses `data/pgdata` (or an in-memory database under `NODE_ENV=test`). |
 
-You do **not** need to install or run `psql` just to create an account. After the app is connected to a PostgreSQL database and the migrations have been applied, create an account at `/signup.html`. `psql` is one way to create a local database and apply migrations; pgAdmin or a hosted database provider's SQL console can do those setup tasks instead.
+### Optional: use a real PostgreSQL server
 
-To add the demo accounts to that database, run `psql -U postgres -d teambase -f db/seeds/001_test_accounts.sql`. This seed is safe to rerun without adding duplicate accounts. These shared, weak-password accounts are for controlled demo/test environments only; do not keep them on a publicly accessible production deployment.
+Set `DATABASE_URL` in `.env` to a PostgreSQL connection string, then run:
+
+```powershell
+npm run db:migrate
+npm start
+```
+
+The app also supports the legacy `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` variables. There are no default database credentials. Migrations previously applied by hand to an existing database must first be recorded in `schema_migrations` (or use a fresh database), because migration 002 is not re-runnable against an already-created schema.
 
 The seed includes these local demo accounts:
 
@@ -42,6 +53,10 @@ The seed includes these local demo accounts:
 | --- | --- | --- |
 | Owner | `Owner@email.com` | `123456` |
 | Player | `Player@email.com` | `123456` |
+| Owner | `Brickhouse@email.com` | `123456` |
+| Player | `Michael@email.com` | `654321` |
+
+These shared, weak-password accounts are for controlled demo/test environments only; do not keep them on a publicly accessible production deployment.
 
 The Owner account owns the `Warriors` basketball team. The roster contains Lebron (#23, Forward), linked to the Player account, and Larry (#30, Guard).
 
