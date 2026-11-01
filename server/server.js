@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const crypto = require('node:crypto');
 require('dotenv').config();
 
 const app = express();
@@ -7,6 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 const apiRoutes = require('./routes');
 const authRoutes = require('./routes/auth');
+const db = require('./config/db');
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -31,8 +33,25 @@ app.get('/', (req, res) => {
 });
 
 if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`TeamBase server running on http://localhost:${PORT}`);
+  async function start() {
+    if (!process.env.JWT_SECRET) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('JWT_SECRET must be set in production.');
+      }
+
+      process.env.JWT_SECRET = crypto.randomBytes(32).toString('hex');
+      console.warn('JWT_SECRET is unset; using a temporary random development secret.');
+    }
+
+    await db.connect();
+    app.listen(PORT, () => {
+      console.log(`TeamBase server running on http://localhost:${PORT}`);
+    });
+  }
+
+  start().catch((error) => {
+    console.error('Failed to start TeamBase server:', error.message);
+    process.exitCode = 1;
   });
 }
 
