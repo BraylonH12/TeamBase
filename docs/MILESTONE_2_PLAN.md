@@ -48,7 +48,7 @@ Baseline measured today from a fresh `npm ci` (Node 22): `npm test` passes **14/
 | C. Hosted Postgres (Neon, Supabase, etc.) via `DATABASE_URL` | No local install, but you must hand the TA credentials | Tiny (`DATABASE_URL` support) | Fine as the Milestone 3 deployment DB. Poor for reproducibility: depends on an outside service and shared secrets. |
 | D. SQLite | `npm install` | **Large.** `$1` placeholders, `SERIAL`/identity columns, `FOR UPDATE OF`, `TIMESTAMPTZ`, `ALTER TABLE ... ADD CONSTRAINT` in migrations 002/003, and Postgres error codes (`23505`, `23503`) are all used by the current code. | Not worth the regression risk with one day left. |
 
-### 2.3 Recommendation: Option A
+### 2.3 Developer Choice: Option A
 
 PGlite is PostgreSQL compiled to WebAssembly and runs inside the Node process. When `DATABASE_URL` is set the app uses the normal `pg` pool, so the same code works against a real PostgreSQL server for deployment in Milestone 3.
 
