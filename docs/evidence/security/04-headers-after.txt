@@ -1,0 +1,22 @@
+HTTP/1.1 200 OK
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+Accept-Ranges: bytes
+Cache-Control: public, max-age=0
+Last-Modified: Tue, 29 Sep 2026 17:30:16 GMT
+ETag: W/"6ab-1a0ee379a80"
+Content-Type: text/html; charset=UTF-8
+Content-Length: 1707
+Date: Sun, 01 Nov 2026 16:01:04 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5

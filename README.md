@@ -32,7 +32,8 @@ Open `http://localhost:3000`. Migrations are applied automatically on startup. T
 | --- | --- | --- |
 | `PORT` | No | HTTP port (default `3000`). |
 | `DATABASE_URL` | No | PostgreSQL connection string; when set, uses the `pg` driver instead of embedded PGlite. |
-| `JWT_SECRET` | No in development; required in production | Secret used to sign authentication tokens. |
+| `JWT_SECRET` | No in development; required in production | Secret used to sign authentication tokens; must be at least 32 bytes in production. |
+| `AUTH_RATE_LIMIT_MAX` | No | Login/signup attempts per IP per 15 minutes (default `10`; default is `1000` under `NODE_ENV=test`). |
 | `SEED_DEMO` | No | Set to `true` to seed demo accounts or `false` to disable seeding. By default, seeds run on embedded development databases only. |
 | `PGLITE_DIR` | No | Custom PGlite data directory. Without it, the app uses `data/pgdata` (or an in-memory database under `NODE_ENV=test`). |
 
