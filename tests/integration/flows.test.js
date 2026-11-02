@@ -288,6 +288,84 @@ test('IT-4: assigned Coach can post and schedule Practice but cannot manage rost
   assert.equal(response.status, 404);
 });
 
+test('IT-5: team members can RSVP, owners can update roster rows, and owners can cancel practices', async () => {
+  const practiceList = await request(`/api/teams/${ownerTeamId}/events`, { token: ownerToken });
+  const practiceEvent = (await practiceList.json()).events.find((event) => event.event_type === 'Practice');
+  assert.ok(practiceEvent);
+
+  let response = await request(`/api/teams/${ownerTeamId}/events/${practiceEvent.id}/rsvp`, {
+    token: playerToken,
+    method: 'PUT',
+    body: { status: 'Going' },
+  });
+  assert.equal(response.status, 200);
+  let payload = await response.json();
+  assert.equal(payload.rsvp.status, 'Going');
+
+  const playerProfile = await request('/api/auth/me', { token: playerToken });
+  const playerUserId = (await playerProfile.json()).user.id;
+
+  response = await request(`/api/teams/${ownerTeamId}/events/${practiceEvent.id}/rsvps`, { token: ownerToken });
+  assert.equal(response.status, 200);
+  payload = await response.json();
+  assert.ok(payload.rsvps.some((rsvp) => Number(rsvp.user_id) === Number(playerUserId)));
+
+  response = await request(`/api/teams/${ownerTeamId}/events/${practiceEvent.id}/rsvps`, { token: playerToken });
+  assert.equal(response.status, 200);
+  payload = await response.json();
+  assert.equal(payload.rsvps.length, 1);
+  assert.equal(payload.rsvps[0].status, 'Going');
+
+  response = await request(`/api/teams/${ownerTeamId}/events/${practiceEvent.id}/rsvp`, {
+    token: playerToken,
+    method: 'PUT',
+    body: { status: "Can't make it" },
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).rsvp.status, "Can't make it");
+
+  const roster = await request(`/api/teams/${ownerTeamId}/roster`, { token: ownerToken });
+  const member = (await roster.json()).players[0];
+  assert.ok(member);
+
+  response = await request(`/api/teams/${ownerTeamId}/roster/${member.id}`, {
+    token: ownerToken,
+    method: 'PATCH',
+    body: { name: 'Updated Player', jersey_number: 99, position: 'Midfielder' },
+  });
+  assert.equal(response.status, 200);
+  payload = await response.json();
+  assert.equal(payload.player.name, 'Updated Player');
+
+  response = await request(`/api/teams/${ownerTeamId}/roster/${member.id}`, {
+    token: ownerToken,
+    method: 'DELETE',
+  });
+  assert.equal(response.status, 200);
+  assert.match((await response.json()).message, /removed/i);
+
+  const coach = await signup('Integration Practice Coach', 'Coach');
+  response = await request(`/api/teams/${ownerTeamId}/coaches`, {
+    token: ownerToken,
+    method: 'POST',
+    body: { email: coach.email },
+  });
+  assert.equal(response.status, 201);
+
+  response = await request(`/api/teams/${ownerTeamId}/events/${practiceEvent.id}`, {
+    token: coach.token,
+    method: 'DELETE',
+  });
+  assert.equal(response.status, 403);
+
+  response = await request(`/api/teams/${ownerTeamId}/events/${practiceEvent.id}`, {
+    token: ownerToken,
+    method: 'DELETE',
+  });
+  assert.equal(response.status, 200);
+  assert.match((await response.json()).message, /canceled/i);
+});
+
 test('PGlite reports affected rowCount for UPDATE and DELETE', async () => {
   const user = await db.query(
     'INSERT INTO users (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id',
