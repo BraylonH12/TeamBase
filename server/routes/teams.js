@@ -27,6 +27,14 @@ function validTime(value) {
     && /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?$/.test(value);
 }
 
+function normalizeRsvpStatus(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (trimmed === 'Going') return 'Going';
+  if (trimmed === "Can't make it" || trimmed === 'Cannot make it') return "Can't make it";
+  return null;
+}
+
 async function hasTeamAccess(teamId, userId) {
   const result = await db.query(
     `SELECT 1
@@ -240,6 +248,75 @@ router.delete('/:teamId/coaches/:coachId', requireRole('Owner'), async (req, res
   }
 });
 
+router.patch('/:teamId/roster/:playerId', requireRole('Owner'), async (req, res) => {
+  const teamId = parseId(req.params.teamId);
+  const playerId = parseId(req.params.playerId);
+  if (!teamId || !playerId) return res.status(400).json({ message: 'Enter valid team and player IDs.' });
+
+  const updates = [];
+  const values = [];
+  const { name, jersey_number: jerseyNumber, position } = req.body || {};
+
+  if (name !== undefined) {
+    if (!validText(name, 100)) return res.status(400).json({ message: 'Enter a valid player name.' });
+    updates.push(`name = $${values.length + 1}`);
+    values.push(name.trim());
+  }
+  if (jerseyNumber !== undefined) {
+    if (!Number.isInteger(jerseyNumber) || jerseyNumber < 0 || jerseyNumber > 999) {
+      return res.status(400).json({ message: 'Enter a valid jersey number.' });
+    }
+    updates.push(`jersey_number = $${values.length + 1}`);
+    values.push(jerseyNumber);
+  }
+  if (position !== undefined) {
+    if (!validText(position, 50)) return res.status(400).json({ message: 'Enter a valid position.' });
+    updates.push(`position = $${values.length + 1}`);
+    values.push(position.trim());
+  }
+  if (!updates.length) return res.status(400).json({ message: 'Choose at least one player field to update.' });
+
+  try {
+    if (!(await isTeamOwner(teamId, req.user.id))) {
+      return res.status(404).json({ message: 'Team not found.' });
+    }
+
+    values.push(playerId, teamId);
+    const result = await db.query(
+      `UPDATE players SET ${updates.join(', ')}
+       WHERE id = $${values.length - 1} AND team_id = $${values.length}
+       RETURNING id, user_id, team_id, name, jersey_number, position, created_at`,
+      values,
+    );
+
+    if (!result.rowCount) return res.status(404).json({ message: 'Roster player not found.' });
+    return res.json({ player: result.rows[0] });
+  } catch (error) {
+    return databaseError(res, error, 'update roster player');
+  }
+});
+
+router.delete('/:teamId/roster/:playerId', requireRole('Owner'), async (req, res) => {
+  const teamId = parseId(req.params.teamId);
+  const playerId = parseId(req.params.playerId);
+  if (!teamId || !playerId) return res.status(400).json({ message: 'Enter valid team and player IDs.' });
+
+  try {
+    if (!(await isTeamOwner(teamId, req.user.id))) {
+      return res.status(404).json({ message: 'Team not found.' });
+    }
+
+    const result = await db.query(
+      'DELETE FROM players WHERE id = $1 AND team_id = $2 RETURNING id',
+      [playerId, teamId],
+    );
+    if (!result.rowCount) return res.status(404).json({ message: 'Roster player not found.' });
+    return res.json({ message: 'Player removed from the roster.' });
+  } catch (error) {
+    return databaseError(res, error, 'remove roster player');
+  }
+});
+
 router.post('/:teamId/roster', requireRole('Owner'), async (req, res) => {
   const teamId = parseId(req.params.teamId);
   const { name, jersey_number: jerseyNumber, position, email } = req.body || {};
@@ -340,6 +417,105 @@ router.post('/:teamId/events', requireRole('Owner', 'Coach'), async (req, res) =
     return res.status(201).json({ event: result.rows[0] });
   } catch (error) {
     return databaseError(res, error, 'schedule event');
+  }
+});
+
+router.get('/:teamId/events/:eventId/rsvps', async (req, res) => {
+  const teamId = parseId(req.params.teamId);
+  const eventId = parseId(req.params.eventId);
+  if (!teamId || !eventId) return res.status(400).json({ message: 'Enter valid team and event IDs.' });
+
+  try {
+    if (!(await hasTeamAccess(teamId, req.user.id))) {
+      return res.status(404).json({ message: 'Team not found.' });
+    }
+
+    const event = await db.query(
+      'SELECT team_id FROM events WHERE id = $1',
+      [eventId],
+    );
+    if (!event.rows[0] || String(event.rows[0].team_id) !== String(teamId)) {
+      return res.status(404).json({ message: 'Event not found.' });
+    }
+
+    const baseQuery = `SELECT er.event_id, er.user_id, u.name AS user_name, er.status, er.updated_at
+      FROM event_rsvps er JOIN users u ON u.id = er.user_id
+      WHERE er.event_id = $1`;
+    const result = await db.query(
+      req.user.role === 'Player'
+        ? `${baseQuery} AND er.user_id = $2 ORDER BY er.updated_at DESC`
+        : `${baseQuery} ORDER BY er.updated_at DESC, er.user_id`,
+      req.user.role === 'Player' ? [eventId, req.user.id] : [eventId],
+    );
+    return res.json({ rsvps: result.rows });
+  } catch (error) {
+    return databaseError(res, error, 'load event RSVPs');
+  }
+});
+
+router.put('/:teamId/events/:eventId/rsvp', async (req, res) => {
+  const teamId = parseId(req.params.teamId);
+  const eventId = parseId(req.params.eventId);
+  const status = normalizeRsvpStatus(req.body?.status);
+
+  if (!teamId || !eventId || !status) {
+    return res.status(400).json({ message: 'Choose Going or Can\'t make it for a valid event RSVP.' });
+  }
+
+  try {
+    if (!(await hasTeamAccess(teamId, req.user.id))) {
+      return res.status(404).json({ message: 'Team not found.' });
+    }
+
+    const event = await db.query(
+      'SELECT team_id FROM events WHERE id = $1',
+      [eventId],
+    );
+    if (!event.rows[0] || String(event.rows[0].team_id) !== String(teamId)) {
+      return res.status(404).json({ message: 'Event not found.' });
+    }
+
+    const result = await db.query(
+      `INSERT INTO event_rsvps (event_id, user_id, status, updated_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (event_id, user_id)
+       DO UPDATE SET status = EXCLUDED.status, updated_at = NOW()
+       RETURNING event_id, user_id, status, updated_at`,
+      [eventId, req.user.id, status],
+    );
+    return res.status(200).json({ rsvp: result.rows[0], message: 'Your RSVP was updated.' });
+  } catch (error) {
+    return databaseError(res, error, 'save RSVP');
+  }
+});
+
+router.delete('/:teamId/events/:eventId', requireRole('Owner'), async (req, res) => {
+  const teamId = parseId(req.params.teamId);
+  const eventId = parseId(req.params.eventId);
+  if (!teamId || !eventId) return res.status(400).json({ message: 'Enter valid team and event IDs.' });
+
+  try {
+    if (!(await isTeamOwner(teamId, req.user.id))) {
+      return res.status(404).json({ message: 'Team not found.' });
+    }
+
+    const event = await db.query(
+      'SELECT id, event_type FROM events WHERE id = $1 AND team_id = $2',
+      [eventId, teamId],
+    );
+    if (!event.rows[0]) return res.status(404).json({ message: 'Practice not found.' });
+    if (event.rows[0].event_type !== 'Practice') {
+      return res.status(400).json({ message: 'Only practice events can be canceled.' });
+    }
+
+    const result = await db.query(
+      'DELETE FROM events WHERE id = $1 AND team_id = $2 RETURNING id',
+      [eventId, teamId],
+    );
+    if (!result.rowCount) return res.status(404).json({ message: 'Practice not found.' });
+    return res.json({ message: 'Practice canceled.' });
+  } catch (error) {
+    return databaseError(res, error, 'cancel practice');
   }
 });
 

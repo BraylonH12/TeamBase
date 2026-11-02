@@ -252,6 +252,10 @@
     const isGame = event.event_type === 'Game';
     const past = start < new Date();
     const showOpponent = event.opponent_name && !event.title.includes(event.opponent_name);
+    const actions = [];
+    if (isOwner() && event.event_type === 'Practice') {
+      actions.push(button('Cancel', () => cancelPractice(event), 'secondary', { class: 'btn btn-secondary btn-sm' }));
+    }
 
     return h('li', { class: `event ${isGame ? 'is-game' : 'is-practice'}${past ? ' is-past' : ''}` },
       h('div', { class: 'event-date', 'aria-hidden': 'true' },
@@ -263,7 +267,7 @@
           h('span', { text: `${showDate ? `${fmtDay(start)}, ` : ''}${fmtTime(event.event_time)}` }),
           h('span', { text: event.location }),
           showOpponent ? h('span', { text: `vs ${event.opponent_name}` }) : null)),
-      h('span', { class: `tag ${isGame ? 'tag-game' : 'tag-practice'}`, text: event.event_type }));
+      h('div', { class: 'event-actions' }, h('span', { class: `tag ${isGame ? 'tag-game' : 'tag-practice'}`, text: event.event_type }), ...actions));
   }
 
   function requestRow(request) {
@@ -571,7 +575,10 @@
       headRow.append(th);
       return [key, th];
     });
-    if (showAccount) headRow.append(h('th', { scope: 'col', text: 'Account' }));
+    if (showAccount) {
+      headRow.append(h('th', { scope: 'col', text: 'Account' }));
+      headRow.append(h('th', { scope: 'col', text: 'Actions' }));
+    }
 
     const tbody = h('tbody', {});
 
@@ -591,14 +598,19 @@
 
       tbody.replaceChildren(...rows.map((p) => {
         const isMe = p.user_id != null && String(p.user_id) === String(state.user.id);
+        const accountCell = showAccount ? h('td', { class: p.user_id ? '' : 'muted', text: p.user_id ? 'Linked' : 'Not linked' }) : null;
+        const actionCell = showAccount
+          ? h('td', {}, button('Remove', () => removePlayer(p), 'secondary', { class: 'btn btn-secondary btn-sm' }))
+          : null;
         return h('tr', {},
           h('td', { class: 'jersey', text: p.jersey_number }),
           h('td', {}, p.name, isMe ? h('span', { class: 'tag tag-you', text: 'You' }) : null),
           h('td', { text: p.position }),
-          showAccount ? h('td', { class: p.user_id ? '' : 'muted', text: p.user_id ? 'Linked' : 'Not linked' }) : null);
+          accountCell,
+          actionCell);
       }));
       if (!rows.length) {
-        tbody.append(h('tr', {}, h('td', { colspan: showAccount ? 4 : 3, class: 'muted', text: state.roster.length ? 'No players match that search.' : 'No players on the roster yet.' })));
+        tbody.append(h('tr', {}, h('td', { colspan: showAccount ? 5 : 3, class: 'muted', text: state.roster.length ? 'No players match that search.' : 'No players on the roster yet.' })));
       }
     }
 
@@ -827,6 +839,28 @@
       await loadTeamData();
       render();
       toast(`${coach.name} removed from the team.`);
+    } catch (error) {
+      toast(error.message, 'error');
+    }
+  }
+
+  async function removePlayer(player) {
+    try {
+      await api(`/teams/${state.teamId}/roster/${player.id}`, { method: 'DELETE' });
+      await loadTeamData();
+      render();
+      toast(`${player.name} removed from the roster.`);
+    } catch (error) {
+      toast(error.message, 'error');
+    }
+  }
+
+  async function cancelPractice(event) {
+    try {
+      await api(`/teams/${state.teamId}/events/${event.id}`, { method: 'DELETE' });
+      await loadTeamData();
+      render();
+      toast(`${event.title} was canceled.`);
     } catch (error) {
       toast(error.message, 'error');
     }
