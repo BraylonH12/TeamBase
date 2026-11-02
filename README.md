@@ -1,54 +1,61 @@
 # TeamBase
-CS415 Web Application Project:
 
-## Description
-Centralized sports organization and athletic management web application.
+TeamBase is a sports-organization web app for managing teams, rosters, practice schedules, announcements, and game requests.
 
-## Team Members
-* Braylon Heavens (<bkheavens@crimson.ua.edu>)
-* Eric Smith (<emsmith40@crimson.ua.edu>)
+## Quick start
 
-## Tech Stack
-* **Frontend:** HTML, CSS, JavaScript
-* **Backend:** Node.js, Express
-* **Database:** PostgreSQL (embedded PGlite locally; `pg` for a PostgreSQL server)
+Use the commands below from a terminal:
 
-## Quick Start
-
-Requires Node.js 22 or later. The project was smoke-tested on Node.js 22 during the database spike; this environment's automated tests run on Node.js 24.19.0. No local PostgreSQL installation is needed for development.
-
-```powershell
+```bash
 git clone https://github.com/BraylonH12/TeamBase.git
 cd TeamBase
 npm install
 npm start
 ```
 
-Open `http://localhost:3000`. Migrations are applied automatically on startup. The embedded PGlite database is stored under `data/pgdata` and demo data is seeded automatically in development. To start over, stop the server and run `npm run db:reset`. Copy `.env.example` to `.env` only if you want to configure optional settings. If `JWT_SECRET` is unset, development startup generates a temporary secret, so login sessions do not survive a server restart.
+Then open `http://localhost:3000` in a browser.
 
-### Environment variables
+## Required software
+
+- Node.js 22 or newer. The project was tested on Node 22 and the local environment used for validation was Node 24.19.0.
+- A browser with local development access enabled.
+- Optional: a PostgreSQL server if you want to point the app at `DATABASE_URL` instead of the embedded PGlite local database.
+
+## Local development database
+
+The app defaults to an embedded PGlite database for local work. It applies migrations automatically on startup and creates a local data folder under `data/pgdata` unless you override it with `PGLITE_DIR` or run under `NODE_ENV=test`.
+
+To reset the local database:
+
+```bash
+npm run db:reset
+```
+
+## Environment variables
 
 | Variable | Required | Description |
 | --- | --- | --- |
-| `PORT` | No | HTTP port (default `3000`). |
-| `DATABASE_URL` | No | PostgreSQL connection string; when set, uses the `pg` driver instead of embedded PGlite. |
-| `JWT_SECRET` | No in development; required in production | Secret used to sign authentication tokens; must be at least 32 bytes in production. |
-| `AUTH_RATE_LIMIT_MAX` | No | Login/signup attempts per IP per 15 minutes (default `10`; default is `1000` under `NODE_ENV=test`). |
-| `SEED_DEMO` | No | Set to `true` to seed demo accounts or `false` to disable seeding. By default, seeds run on embedded development databases only. |
-| `PGLITE_DIR` | No | Custom PGlite data directory. Without it, the app uses `data/pgdata` (or an in-memory database under `NODE_ENV=test`). |
+| `PORT` | No | HTTP port used by Express. Defaults to `3000`. |
+| `DATABASE_URL` | No | Full PostgreSQL connection string. When present, the app uses the `pg` driver instead of PGlite. |
+| `JWT_SECRET` | No in development; required in production | Secret used to sign session tokens. In production it must be at least 32 bytes long. |
+| `AUTH_RATE_LIMIT_MAX` | No | Number of login/signup attempts allowed per IP per 15 minutes. Defaults to `10` outside tests, and `1000` under `NODE_ENV=test`. |
+| `SEED_DEMO` | No | Set to `true` to enable seeded demo data; defaults to automatic seeding in local development. |
+| `PGLITE_DIR` | No | Optional custom folder for the embedded local database. |
 
-### Optional: use a real PostgreSQL server
+## Optional: use a real PostgreSQL server
 
-Set `DATABASE_URL` in `.env` to a PostgreSQL connection string, then run:
+Set `DATABASE_URL` and then run:
 
-```powershell
+```bash
 npm run db:migrate
 npm start
 ```
 
-The app also supports the legacy `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` variables. There are no default database credentials. Migrations previously applied by hand to an existing database must first be recorded in `schema_migrations` (or use a fresh database), because migration 002 is not re-runnable against an already-created schema.
+The legacy `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` values are still recognized, but the project no longer ships with default DB credentials.
 
-The seed includes these local demo accounts:
+## Demo accounts
+
+The seeded demo accounts are intended for local demo/testing and should not be used in a public production deployment.
 
 | Role | Email | Password |
 | --- | --- | --- |
@@ -57,26 +64,50 @@ The seed includes these local demo accounts:
 | Owner | `Brickhouse@email.com` | `123456` |
 | Player | `Michael@email.com` | `654321` |
 
-These shared, weak-password accounts are for controlled demo/test environments only; do not keep them on a publicly accessible production deployment.
+The owner accounts control the `Warriors` team and the sample roster contains players such as Lebron and Larry.
 
-The Owner account owns the `Warriors` basketball team. The roster contains Lebron (#23, Forward), linked to the Player account, and Larry (#30, Guard).
+## Main user flow
 
-The login and signup pages are available at `/login.html` and `/signup.html`. Signup creates an Owner, Coach, or Player account with a bcrypt-hashed password; login verifies existing accounts. Successful flows issue an HttpOnly session cookie and navigate to `/home.html`. Authentication also accepts bearer tokens; `GET /api/auth/me` returns the current user and `POST /api/auth/logout` clears the cookie.
+- Sign up or log in at `/signup.html` or `/login.html`.
+- Create a team as an owner.
+- Add players to the roster and assign coaches.
+- Post announcements for the team.
+- Schedule practice and game events.
+- Send or accept game requests.
+- Player members can RSVP to events and view the current team schedule.
 
-## Milestone 1 Verification
+## Testing
 
-Run the automated checks from the repository root:
+Run the automated checks from the repo root:
 
-```powershell
+```bash
 npm test
+npm run test:coverage
 ```
 
-To verify the main workflow manually after cloning:
+The coverage script emits text, HTML, and LCOV output so the team can track the server route and middleware coverage target.
 
-1. Follow the environment setup instructions above.
-2. Go to `/signup.html` to create a new Owner or Player account, or go to `/login.html` to sign in with one of the seeded test accounts.
-3. Confirm that a successful login sets the session cookie and redirects to `/home.html`.
-4. As an Owner, create a team, add players to its roster, and post a team announcement.
-5. As an Owner, schedule an event for that team.
-6. As an Owner, send a match request to an opponent team. Sign in as the receiving team's Owner, accept the request, and confirm that a game event appears on both teams' schedules.
-7. As a Player, verify that the assigned team's roster, upcoming schedule, and announcements are visible.
+## Milestone 2 verification
+
+Use this quick verification guide for the TA or reviewer:
+
+| Verify | Command / action |
+| --- | --- |
+| App starts | `npm install && npm start`, then open `/` |
+| Milestone 1 workflow still works | Sign up, log in, create a team, add roster and announcement, create event, send and accept a game request |
+| New M2 features work | RSVP as a Player and verify count view as Owner/Coach; edit or remove a roster player |
+| Automated tests run | `npm test` and `npm run test:coverage` |
+| Security controls observed | Run the rate-limit loop and confirm a `429`, then verify Helmet headers from `curl -sI http://localhost:3000/` |
+
+## Documentation and process
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md)
+- [CHANGELOG.md](./CHANGELOG.md)
+- [docs/QA_PLAN.md](./docs/QA_PLAN.md)
+- [docs/THREAT_MODEL.md](./docs/THREAT_MODEL.md)
+- [docs/OWASP_REVIEW.md](./docs/OWASP_REVIEW.md)
+- [docs/MILESTONE_2_REPORT.md](./docs/MILESTONE_2_REPORT.md)
+
+## Notes
+
+This project uses PostgreSQL-compatible SQL throughout, while local development runs on embedded PGlite to keep setup simple for demos and class checks.
