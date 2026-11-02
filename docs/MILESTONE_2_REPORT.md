@@ -31,14 +31,3 @@ Then verify the main workflow manually in a browser:
 5. Accept the request as the receiving owner.
 6. Confirm the event appears in both schedules.
 7. As a player, update an RSVP and verify the owner or coach can view the attendance.
-
-## Contribution statements
-
-- Braylon: I focused on the database simplification, test harness, and the backend reliability work needed to keep the app stable during Milestone 2.
-- Eric: I focused on the documentation, responsive UI checks, and feature execution around the user-facing flows and QA evidence for the milestone.
-
-## PR and review notes
-
-- Use the project PR template in [../.github/pull_request_template.md](../.github/pull_request_template.md).
-- Follow the branch and commit conventions in [../CONTRIBUTING.md](../CONTRIBUTING.md).
-- Use the project QA checklist in [QA_PLAN.md](./QA_PLAN.md) before merging.
