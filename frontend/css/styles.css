@@ -186,3 +186,63 @@ button:hover {
 .form-message[data-state="success"] {
   color: #18794e;
 }
+
+@media (max-width: 900px) {
+  .container {
+    width: min(92%, 760px);
+  }
+
+  .topbar .container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 0;
+  }
+
+  nav {
+    flex-wrap: wrap;
+  }
+
+  .hero {
+    min-height: 320px;
+    padding: 2.25rem 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    width: min(92%, 100%);
+  }
+
+  .hero {
+    text-align: center;
+  }
+
+  .hero p {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .login-layout {
+    padding: 2rem 0;
+  }
+
+  .login-form {
+    padding: 1.25rem;
+    width: min(100%, 92vw);
+  }
+
+  button,
+  .button-link {
+    width: 100%;
+  }
+
+  nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
