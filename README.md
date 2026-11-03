@@ -13,6 +13,8 @@ npm install
 npm start
 ```
 
+If the app fails with `ENOENT: no such file or directory, mkdir ...\data\pgdata`, run the folder-creation command `New-Item -ItemType Directory -Force .\data\pgdata` above, then start the app again.
+
 Then open `http://localhost:3000` in a browser.
 
 ## Required software
@@ -23,7 +25,14 @@ Then open `http://localhost:3000` in a browser.
 
 ## Local development database
 
-The app defaults to an embedded PGlite database for local work. It applies migrations automatically on startup and creates a local data folder under `data/pgdata` unless you override it with `PGLITE_DIR` or run under `NODE_ENV=test`.
+The app defaults to an embedded PGlite database for local work. It applies migrations automatically on startup and uses a local data folder under `data/pgdata` unless you override it with `PGLITE_DIR` or run under `NODE_ENV=test`.
+
+If the folder is missing on a fresh checkout or for another user, create it first:
+
+```powershell
+New-Item -ItemType Directory -Force .\data\pgdata
+npm start
+```
 
 To reset the local database:
 
